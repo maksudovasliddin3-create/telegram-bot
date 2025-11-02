@@ -1,1 +1,5 @@
+python-telegram-bot
+python-dotenv
+uvicorn
+Flask
 
