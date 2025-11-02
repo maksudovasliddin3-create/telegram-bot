@@ -1,7 +1,6 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegram.constants import ParseMode
-from flask import Flask, request
 import os
 import logging
 
@@ -17,9 +16,6 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN", "8382278583:AAH5lq07V5i3-SIaP2eFJ4YNbVY
 # Server sozlamalari
 PORT = int(os.environ.get("PORT", 8080))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-
-# Flask ilovasini yaratish
-app_flask = Flask(__name__)
 
 # 🔸 /start buyrug'i
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -72,31 +68,17 @@ def main():
     if WEBHOOK_URL:
         logger.info(f"Webhook rejimida ishga tushirilmoqda. URL: {WEBHOOK_URL}, Port: {PORT}")
         
-        # Webhook URL ni Telegram ga o'rnatish
-        app.bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
-
-        @app_flask.route(f"/{TOKEN}", methods=["POST"])
-        async def webhook_handler():
-            """Telegram dan kelgan update ni qabul qilish"""
-            if request.method == "POST":
-                update = Update.de_json(request.get_json(force=True), app.bot)
-                await app.process_update(update)
-            return "ok"
-
-        @app_flask.route("/")
-        def index():
-            """Serverning ishlashini tekshirish uchun oddiy sahifa"""
-            return "Telegram Bot is running!"
-
-        return app_flask
+        # Webhook rejimida ishga tushirish
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=TOKEN,
+            webhook_url=f"{WEBHOOK_URL}/{TOKEN}"
+        )
     else:
         # Agar WEBHOOK_URL sozlanmagan bo'lsa, polling rejimida ishga tushirish (faqat lokal test uchun)
         logger.info("WEBHOOK_URL topilmadi. Polling rejimida ishga tushirilmoqda (faqat lokal test uchun).")
         app.run_polling(allowed_updates=Update.ALL_TYPES)
 
-# Gunicorn/Flask uchun ilovani eksport qilish
-if WEBHOOK_URL:
-    application = main()
-else:
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()
